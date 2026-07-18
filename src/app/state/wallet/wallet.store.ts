@@ -10,13 +10,11 @@ export interface Asset {
 }
 
 export interface WalletState {
-  consolidatedPosition: number;
   assets: Asset[];
 }
 
 export function createInitialState(): WalletState {
   return {
-    consolidatedPosition: 0,
     assets: [],
   };
 }
@@ -28,6 +26,9 @@ export class WalletStore extends Store<WalletState> {
     super(createInitialState());
   }
 
+  /**
+   * Insert a BinanceStream data into the Store
+   */
   updateWallet(stream: BinanceStream): void {
     const currentState = this.getValue();
     let assets = [];
@@ -47,7 +48,6 @@ export class WalletStore extends Store<WalletState> {
     }
 
     this.update({
-      consolidatedPosition: currentState.consolidatedPosition,
       assets: assets,
     });
   }

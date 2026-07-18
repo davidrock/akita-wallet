@@ -7,6 +7,6 @@ export interface User {
   phone: string;
 }
 
-export function createUser(params: Partial<User>) {
+export function createUser() {
   return {} as User;
 }

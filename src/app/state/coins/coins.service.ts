@@ -1,17 +1,14 @@
+import { CoinsState } from './coins.store';
 import { CoinsQuery } from './coins.query';
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { EMPTY, switchMap, tap } from 'rxjs';
+import { EMPTY, switchMap, tap, Observable } from 'rxjs';
 import { cacheable } from '@datorama/akita';
-import { environment } from 'src/environments/environment';
 import { CoinsStore } from '.';
 
 @Injectable({ providedIn: 'root' })
 export class CoinsService {
-  ENDPOINT = 'http://localhost:3000/coins'; //environment.coinmarketcap.endpoint;
-  API_KEY = environment.coinmarketcap.API_KEY;
-
-  COINS_API = `${this.ENDPOINT}/v1/cryptocurrency/map?CMC_PRO_API_KEY=${this.API_KEY}&sort=cmc_rank&start=1&limit=20`;
+  ENDPOINT = 'http://localhost:3000/coins';
 
   constructor(
     private coinsStore: CoinsStore,
@@ -19,13 +16,21 @@ export class CoinsService {
     private http: HttpClient
   ) {}
 
-  get(): void {
+  /**
+   * Simply gets the coins once and update the Store
+   * @@public
+   */
+  public get(): void {
     this.http
       .get(this.ENDPOINT)
       .subscribe(coins => this.coinsStore.update(coins));
   }
 
-  getCached(): void {
+  /**
+   * Returns chached value if it exists and it is valid
+   * @public
+   */
+  public getCached(): void {
     const request$ = this.http
       .get(this.ENDPOINT)
       .pipe(tap(coins => this.coinsStore.update(coins)));
@@ -33,21 +38,23 @@ export class CoinsService {
     cacheable(this.coinsStore, request$);
   }
 
-  getSmartCached(): void {
-    this.coinsQuery
-      .selectHasCache()
-      .pipe(
-        switchMap(hasCache => {
-          const apiCall = this.http.get(this.ENDPOINT).pipe(
-            tap(coins => {
-              this.coinsStore.update(coins);
-              this.coinsStore.setHasCache(true, { restartTTL: true });
-            })
-          );
+  /**
+   * Get ocins list each time the Store invalidates its cache
+   *
+   * @public
+   */
+  getAutoCache(): Observable<CoinsState> {
+    return this.coinsQuery.selectHasCache().pipe(
+      switchMap(hasCache => {
+        const apiCall = this.http.get<CoinsState>(this.ENDPOINT).pipe(
+          tap((coins: CoinsState) => {
+            this.coinsStore.update(coins);
+            this.coinsStore.setHasCache(true, { restartTTL: true });
+          })
+        );
 
-          return hasCache ? EMPTY : apiCall;
-        })
-      )
-      .subscribe();
+        return hasCache ? EMPTY : apiCall;
+      })
+    );
   }
 }

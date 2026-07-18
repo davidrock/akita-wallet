@@ -5,10 +5,9 @@ import { UsersQuery } from './state/users/users.query';
 import { CoinsQuery } from './state/coins/coins.query';
 import { Component, OnInit } from '@angular/core';
 import { CoinsService } from './state/coins';
-import { Observable, tap } from 'rxjs';
+import { Observable } from 'rxjs';
 import { Coin } from './state/coins/coins.store';
 import { UsersService } from './state/users';
-import { HashMap } from '@datorama/akita';
 import { WalletState } from './state/wallet';
 import { Asset } from './state/wallet/wallet.store';
 
@@ -20,7 +19,6 @@ import { Asset } from './state/wallet/wallet.store';
 export class AppComponent implements OnInit {
   allCoins$: Observable<Coin[]>;
   users$: Observable<User[]>;
-  users2$: Observable<HashMap<User> | undefined>;
   wallet$: Observable<WalletState>;
 
   constructor(
@@ -33,21 +31,24 @@ export class AppComponent implements OnInit {
   ) {
     this.allCoins$ = this.coinsQuery.allCoins$;
     this.users$ = this.usersQuery.users$;
-    this.users2$ = this.usersQuery.users2$.pipe(tap(x => console.log(x)));
     this.wallet$ = this.walletQuery.wallet$;
   }
 
   ngOnInit(): void {
-    this.coinsService.getSmartCached();
-    this.userService.getCached();
-    this.walletService.watchMarket();
+    this.userService.getCached().subscribe();
+    this.coinsService.getAutoCache().subscribe();
+    this.walletService.watchMarket().subscribe();
   }
 
+  /**
+   * Adds a quantity of a given asset in the Store
+   * @param asset The asset to be invested
+   */
   invest(asset: Asset) {
     console.log(asset);
-    const x = prompt('How much do you to buy (' + asset.symbol + ')', '');
-    if (x) {
-      this.walletService.buyAsset(asset, parseInt(x));
+    const value = prompt('How much do you to buy (' + asset.symbol + ')', '');
+    if (value) {
+      this.walletService.buyAsset(asset, parseInt(value));
     }
   }
 }
